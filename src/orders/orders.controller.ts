@@ -4,6 +4,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
+import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 
 @Controller()
 export class OrdersController {
@@ -15,7 +16,7 @@ export class OrdersController {
   }
 
   @MessagePattern({ cmd: 'find_all_orders' })
-  findAll(@Payload() orderPaginationDto: OrderPaginationDto) {
+  async findAll(@Payload() orderPaginationDto: OrderPaginationDto) {
     return this.ordersService.findAll(orderPaginationDto);
   }
 
@@ -25,7 +26,9 @@ export class OrdersController {
   }
 
   @MessagePattern({ cmd: 'change_order_status' })
-  changeOrderStatus() {
-    return this.ordersService.changeStatus();
+  async changeOrderStatus(
+    @Payload() changeOrderStatusDto: ChangeOrderStatusDto,
+  ) {
+    return this.ordersService.changeStatus(changeOrderStatusDto);
   }
 }
