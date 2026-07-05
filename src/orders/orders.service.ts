@@ -115,6 +115,15 @@ export class OrdersService {
       where: {
         id,
       },
+      include: {
+        orderItems: {
+          select: {
+            productId: true,
+            quantity: true,
+            price: true,
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -124,7 +133,20 @@ export class OrdersService {
       });
     }
 
-    return order;
+    const productsIds = order.orderItems.map((item) => item.productId);
+    const products: Product[] = await firstValueFrom(
+      this.productsClient.send({ cmd: 'validate_products' }, productsIds),
+    );
+
+    return {
+      ...order,
+      orderItems: order.orderItems.map((orderItem) => {
+        return {
+          ...orderItem,
+          name: products.find((prod) => prod.id === orderItem.productId)!.name,
+        };
+      }),
+    };
   }
 
   async changeStatus(changeOrderStatusDto: ChangeOrderStatusDto) {
