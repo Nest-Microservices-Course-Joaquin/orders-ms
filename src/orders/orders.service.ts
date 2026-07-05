@@ -6,6 +6,7 @@ import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 import { PRODUCTS_SERVICE } from 'src/config/services';
 import { firstValueFrom } from 'rxjs';
+import { Product } from 'src/products/interfaces/product.interface';
 
 @Injectable()
 export class OrdersService {
@@ -15,13 +16,69 @@ export class OrdersService {
   ) {}
 
   async create(createOrderDto: CreateOrderDto) {
-    const productsIds = createOrderDto.items.map((item) => item.productId);
+    try {
+      const productsIds = createOrderDto.items.map((item) => item.productId);
 
-    const products = await firstValueFrom(
-      this.productsClient.send({ cmd: 'validate_products' }, productsIds),
-    );
+      const products: Product[] = await firstValueFrom(
+        this.productsClient.send({ cmd: 'validate_products' }, productsIds),
+      );
 
-    return products;
+      const totalAmount = createOrderDto.items.reduce((acc, orderItem) => {
+        const product = products.find(
+          (prod) => prod.id === orderItem.productId,
+        );
+
+        const price = product!.price;
+        const quantity = orderItem.quantity;
+        return acc + price * quantity;
+      }, 0);
+
+      const totalItems = createOrderDto.items.reduce((acc, orderItem) => {
+        return acc + orderItem.quantity;
+      }, 0);
+
+      const order = await this.prisma.order.create({
+        data: {
+          totalAmount,
+          totalItems,
+          orderItems: {
+            createMany: {
+              data: createOrderDto.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: products.find((prod) => prod.id === item.productId)!
+                  .price,
+              })),
+            },
+          },
+        },
+        include: {
+          orderItems: {
+            select: {
+              productId: true,
+              price: true,
+              quantity: true,
+            },
+          },
+        },
+      });
+
+      return {
+        ...order,
+        orderItems: order.orderItems.map((orderItem) => {
+          return {
+            ...orderItem,
+            name: products.find((prod) => prod.id === orderItem.productId)!
+              .name,
+          };
+        }),
+      };
+    } catch (error) {
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: error.message,
+      });
+    }
   }
 
   async findAll(orderPaginationDto: OrderPaginationDto) {
