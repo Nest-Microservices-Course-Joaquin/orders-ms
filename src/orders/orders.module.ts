@@ -4,17 +4,16 @@ import { OrdersController } from './orders.controller';
 import { PrismaService } from 'src/prisma.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { envs } from 'src/config/env.validation';
-import { PRODUCTS_SERVICE } from 'src/config/services';
+import { NATS_SERVICE } from 'src/config/services';
 
 @Module({
   imports: [
     ClientsModule.register([
       {
-        name: PRODUCTS_SERVICE,
-        transport: Transport.TCP,
+        name: NATS_SERVICE,
+        transport: Transport.NATS,
         options: {
-          host: envs.PRODUCTS_MS_HOST,
-          port: envs.PRODUCTS_MS_PORT,
+          servers: envs.NATS_SERVERS,
         },
       },
     ]),
