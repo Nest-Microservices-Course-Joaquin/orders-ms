@@ -7,6 +7,7 @@ import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 import { NATS_SERVICE } from 'src/config/services';
 import { firstValueFrom } from 'rxjs';
 import { Product } from 'src/products/interfaces/product.interface';
+import { OrderWithProducts } from './interfaces/order.interface';
 
 @Injectable()
 export class OrdersService {
@@ -79,6 +80,25 @@ export class OrdersService {
         message: error.message,
       });
     }
+  }
+
+  async createPaymentSession(order: OrderWithProducts) {
+    const paymentSession = await firstValueFrom(
+      this.natsClient.send(
+        { cmd: 'create_payment_session' },
+        {
+          orderId: order.id,
+          currency: 'usd',
+          items: order.orderItems.map((item) => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        },
+      ),
+    );
+
+    return paymentSession;
   }
 
   async findAll(orderPaginationDto: OrderPaginationDto) {
