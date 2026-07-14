@@ -4,6 +4,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
+import { PaidOrderDto } from './dto/paid-order.dto';
 
 @Controller()
 export class OrdersController {
@@ -39,5 +40,5 @@ export class OrdersController {
   }
 
   @EventPattern('payment_succeeded')
-  paidOrder(@Payload() paidOrderDto: any) {}
+  paidOrder(@Payload() paidOrderDto: PaidOrderDto) {}
 }
