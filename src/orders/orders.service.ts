@@ -8,6 +8,8 @@ import { NATS_SERVICE } from 'src/config/services';
 import { firstValueFrom } from 'rxjs';
 import { Product } from 'src/products/interfaces/product.interface';
 import { OrderWithProducts } from './interfaces/order.interface';
+import { PaidOrderDto } from './dto/paid-order.dto';
+import { OrderStatus } from 'generated/prisma/enums';
 
 @Injectable()
 export class OrdersService {
@@ -193,5 +195,30 @@ export class OrdersService {
     return {
       message: `Order status changed to ${status}`,
     };
+  }
+
+  async paidOrder(paidOrderDto: PaidOrderDto) {
+    const { stripePaymentId, orderId, receiptUrl } = paidOrderDto;
+
+    await this.findOne(orderId);
+
+    const order = await this.prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status: OrderStatus.PAID,
+        stripeChargeId: stripePaymentId,
+        paid: true,
+        paidAt: new Date(),
+        orderReceipt: {
+          create: {
+            receiptUrl,
+          },
+        },
+      },
+    });
+
+    return order;
   }
 }
